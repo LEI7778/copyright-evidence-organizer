@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copyright Evidence Organizer | 法务实习 Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Legal Internship Demo</p>
+      <h1>Copyright Evidence Organizer</h1>
+      <p class="subtitle">版权案件材料整理助手 + 版权授权文件审核清单工具：面向互联网平台版权维权、授权链核对和合同附件归档场景。</p>
+    </div>
+    <div class="hero-card">
+      <span>待补/待核事项</span>
+      <strong id="heroMissingCount">0</strong>
+      <small>根据案件材料、权属文件和审核清单自动汇总</small>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="功能模块">
+    <button class="tab active" data-tab="cases" type="button">版权案件材料整理</button>
+    <button class="tab" data-tab="rights" type="button">版权授权文件审核</button>
+  </nav>
+
+  <main>
+    <section id="casesTab" class="tab-page active">
+      <div class="layout">
+        <section class="panel form-panel" aria-labelledby="formTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Case Intake</p>
+              <h2 id="formTitle">案件线索录入</h2>
+            </div>
+            <button class="ghost" id="loadSampleBtn" type="button">载入样例</button>
+          </div>
+
+          <form id="caseForm">
+            <div class="grid two">
+              <label>
+                作品名称
+                <input name="workTitle" placeholder="例：某动画短片 / 宣传海报" required>
+              </label>
+              <label>
+                权利人
+                <input name="rightsHolder" placeholder="例：上海某文化传媒有限公司" required>
+              </label>
+            </div>
+
+            <label>
+              侵权链接
+              <input name="infringingUrl" type="url" placeholder="https://www.example.com/video/..." required>
+            </label>
+
+            <div class="grid three">
+              <label>
+                平台
+                <select name="platform" required>
+                  <option value="">请选择</option>
+                  <option>哔哩哔哩</option>
+                  <option>抖音</option>
+                  <option>小红书</option>
+                  <option>微博</option>
+                  <option>快手</option>
+                  <option>其他平台</option>
+                </select>
+              </label>
+              <label>
+                发现时间
+                <input name="foundAt" type="datetime-local" required>
+              </label>
+              <label>
+                处理进度
+                <select name="status" required>
+                  <option>待初审</option>
+                  <option>待补材料</option>
+                  <option>已发函/投诉</option>
+                  <option>平台处理中</option>
+                  <option>已下架/结案</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="grid two">
+              <label>
+                截图情况
+                <select name="screenshotStatus" required>
+                  <option>未截图</option>
+                  <option>已截图待核验</option>
+                  <option>截图完整</option>
+                </select>
+              </label>
+              <label>
+                权属文件情况
+                <select name="ownershipStatus" required>
+                  <option>缺失</option>
+                  <option>待补授权链</option>
+                  <option>已收到待审核</option>
+                  <option>审核通过并归档</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              上传/记录材料文件
+              <input name="files" type="file" multiple accept=".docx,.txt,.csv,.pdf">
+              <span class="hint">支持 .docx、.txt、.csv 线索文件正文解析；PDF 暂时只记录文件名。</span>
+            </label>
+
+            <div class="notice">
+              本工具仅用于材料整理和审核线索提示，不构成法律意见；最终结论需由法务人员结合原件、业务背景和适用规则复核。
+            </div>
+
+            <section class="parse-panel" aria-labelledby="caseParseTitle">
+              <div class="section-heading compact">
+                <div>
+                  <p class="eyebrow">Case Parser</p>
+                  <h2 id="caseParseTitle">案件文件解析结果</h2>
+                </div>
+                <span id="caseParseStatus" class="pill">等待上传</span>
+              </div>
+              <div id="caseParsedFileMeta" class="hint">上传线索表、取证记录或 CSV 台账后，将在这里展示正文和提取字段。</div>
+              <pre id="caseParsedText" class="parsed-text">暂无解析文本。</pre>
+              <div id="caseExtractedFields" class="extraction-grid"></div>
+              <div id="caseParsedChecklist" class="parsed-checklist"></div>
+            </section>
+
+            <label>
+              备注
+              <textarea name="notes" rows="4" placeholder="例：需补充原始截图时间戳；授权链缺少被授权主体盖章页。"></textarea>
+            </label>
+
+            <div class="actions">
+              <button type="submit">保存案件并生成清单</button>
+              <button class="secondary" id="resetFormBtn" type="button">清空表单</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="workspace">
+          <section class="stats-grid" aria-label="案件统计">
+            <article class="stat-card">
+              <span>登记案件</span>
+              <strong id="totalCases">0</strong>
+              <small>案件台账总数</small>
+            </article>
+            <article class="stat-card">
+              <span>待补材料</span>
+              <strong id="missingCases">0</strong>
+              <small>需跟进截图或权属文件</small>
+            </article>
+            <article class="stat-card">
+              <span>已归档</span>
+              <strong id="archivedCases">0</strong>
+              <small>权属文件审核通过</small>
+            </article>
+            <article class="stat-card">
+              <span>已结案</span>
+              <strong id="closedCases">0</strong>
+              <small>已下架/结案</small>
+            </article>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Register</p>
+                <h2>案件登记表</h2>
+              </div>
+              <div class="toolbar">
+                <input id="searchInput" type="search" placeholder="搜索作品、权利人、平台">
+                <button class="ghost" id="exportCsvBtn" type="button">导出 CSV</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>案件编号</th>
+                    <th>作品名称</th>
+                    <th>权利人</th>
+                    <th>平台</th>
+                    <th>发现时间</th>
+                    <th>处理进度</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="caseTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="grid two">
+            <article class="panel">
+              <p class="eyebrow">Evidence</p>
+              <h2>证据材料清单</h2>
+              <div id="evidenceList" class="checklist"></div>
+            </article>
+            <article class="panel">
+              <p class="eyebrow">Archive</p>
+              <h2>版权文件归档清单</h2>
+              <div id="archiveList" class="checklist"></div>
+            </article>
+          </section>
+
+          <section class="grid two">
+            <article class="panel">
+              <p class="eyebrow">Progress</p>
+              <h2>案件进度统计表</h2>
+              <div id="progressStats" class="progress-list"></div>
+            </article>
+            <article class="panel">
+              <p class="eyebrow">Reminder</p>
+              <h2>待补充材料提醒</h2>
+              <div id="reminderList" class="reminders"></div>
+            </article>
+          </section>
+        </section>
+      </div>
+    </section>
+
+    <section id="rightsTab" class="tab-page">
+      <div class="layout">
+        <section class="panel form-panel" aria-labelledby="rightsFormTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Rights Review</p>
+              <h2 id="rightsFormTitle">版权授权文件审核</h2>
+            </div>
+            <button class="ghost" id="loadRightsSampleBtn" type="button">载入样例</button>
+          </div>
+
+          <form id="rightsForm">
+            <div class="grid two">
+              <label>
+                文件类型
+                <select name="documentType" id="documentType" required>
+                  <option>授权书</option>
+                  <option>版权登记证书</option>
+                  <option>合作协议</option>
+                  <option>营业执照</option>
+                  <option>身份证明</option>
+                  <option>链路授权文件</option>
+                </select>
+              </label>
+              <label>
+                关联案件/项目
+                <input name="relatedMatter" placeholder="例：CE-20260608-001 / 某版权投诉项目">
+              </label>
+            </div>
+
+            <div class="grid two">
+              <label>
+                文件名称
+                <input name="documentName" placeholder="例：信息网络传播权授权书.pdf" required>
+              </label>
+              <label>
+                文件状态
+                <select name="reviewStatus" required>
+                  <option>待审核</option>
+                  <option>需补正</option>
+                  <option>审核通过</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              上传/记录文件
+              <input name="rightsFiles" type="file" multiple accept=".docx,.txt,.csv,.pdf">
+              <span class="hint">优先支持 .docx、.txt、.csv 正文解析；PDF 暂时只记录文件名。</span>
+            </label>
+
+            <div class="notice">
+              本工具仅用于材料整理和审核线索提示，不构成法律意见；最终结论需由法务人员结合原件、业务背景和适用规则复核。
+            </div>
+
+            <section class="parse-panel" aria-labelledby="parseTitle">
+              <div class="section-heading compact">
+                <div>
+                  <p class="eyebrow">Parser</p>
+                  <h2 id="parseTitle">文件解析结果</h2>
+                </div>
+                <span id="parseStatus" class="pill">等待上传</span>
+              </div>
+              <div id="parsedFileMeta" class="hint">上传 .docx、.txt 或 .csv 后，将在这里展示正文和提取字段。</div>
+              <pre id="parsedText" class="parsed-text">暂无解析文本。</pre>
+              <div id="extractedFields" class="extraction-grid"></div>
+              <div id="extractedChecklist" class="parsed-checklist"></div>
+            </section>
+
+            <div id="rightsChecklist" class="review-checklist" aria-label="审核清单"></div>
+
+            <label>
+              审核备注
+              <textarea name="reviewNotes" rows="4" placeholder="例：授权期限覆盖投诉时间，但缺少转授权条款；需补盖章页。"></textarea>
+            </label>
+
+            <div class="actions">
+              <button type="submit">保存审核记录</button>
+              <button class="secondary" id="resetRightsFormBtn" type="button">清空表单</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="workspace">
+          <section class="stats-grid" aria-label="文件审核统计">
+            <article class="stat-card">
+              <span>审核文件</span>
+              <strong id="totalRightsDocs">0</strong>
+              <small>授权/权属文件记录数</small>
+            </article>
+            <article class="stat-card">
+              <span>需补正</span>
+              <strong id="rightsNeedsFix">0</strong>
+              <small>存在缺项或待补文件</small>
+            </article>
+            <article class="stat-card">
+              <span>审核通过</span>
+              <strong id="rightsPassed">0</strong>
+              <small>可进入归档或投诉流程</small>
+            </article>
+            <article class="stat-card">
+              <span>重点核查项</span>
+              <strong id="rightsChecklistCount">0</strong>
+              <small>按文件类型自动生成</small>
+            </article>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Checklist</p>
+                <h2>文件类型核查提示</h2>
+              </div>
+              <div class="toolbar">
+                <button class="ghost" id="exportRightsCsvBtn" type="button">导出审核 CSV</button>
+              </div>
+            </div>
+            <div id="typeGuidance" class="guidance-grid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Review Register</p>
+                <h2>版权授权文件审核台账</h2>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>记录编号</th>
+                    <th>文件类型</th>
+                    <th>文件名称</th>
+                    <th>关联案件/项目</th>
+                    <th>审核结论</th>
+                    <th>缺项</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="rightsTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="grid two">
+            <article class="panel">
+              <p class="eyebrow">Correction</p>
+              <h2>文件补正提醒</h2>
+              <div id="rightsReminderList" class="reminders"></div>
+            </article>
+            <article class="panel">
+              <p class="eyebrow">Archive Logic</p>
+              <h2>归档核对思路</h2>
+              <div class="checklist">
+                <div class="list-item">
+                  <strong>主体一致</strong>
+                  <span>权利人、授权人、被授权人、投诉主体名称应保持一致或有清晰授权链解释。</span>
+                </div>
+                <div class="list-item">
+                  <strong>权利覆盖</strong>
+                  <span>版权维权常重点关注信息网络传播权、复制权、发行权、转授权权限及维权授权。</span>
+                </div>
+                <div class="list-item">
+                  <strong>形式完整</strong>
+                  <span>签章页、附件清单、作品清单、主体证明、授权期限和地域范围需能互相对应。</span>
+                </div>
+              </div>
+            </article>
+          </section>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
